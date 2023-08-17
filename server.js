@@ -1,9 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import db from './database/db.js';
-import galeryRouter from './routes/galeryRoute.js';
+import teamsRouter from './routes/teamsRoute.js';
+import userRouter from './routes/userRoute.js';
 
-const port = process.env.PORT || 6952;
+const port = process.env.PORT || 3000;
 const app = express();
 
 app.use(express.json());
@@ -18,7 +19,9 @@ db.sync()
     console.log('Failed to sync database', err);
   });
 
-app.use('/api/galery', galeryRouter);
+// Routes
+app.use('/api/teams', teamsRouter);
+app.use('/auth', userRouter);
 app.use(express.static('public/photo'));
 
 app.listen(port, () => {

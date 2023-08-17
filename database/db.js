@@ -1,9 +1,11 @@
 import { Sequelize } from 'sequelize';
 import dbConfig from '../config/dbConfig.js';
-import galeryModels from '../models/galeryModels.js';
+import teamsModels from '../models/teamsModels.js';
+import userModels from '../models/userModels.js';
 
 const db = new Sequelize(dbConfig.name, dbConfig.username, dbConfig.password, dbConfig.options);
 
-export const galery = galeryModels(db);
+export const teams = teamsModels(db);
+export const user = userModels(db);
 
 export default db;
