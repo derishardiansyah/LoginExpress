@@ -11,15 +11,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
-db.sync()
-  .then(() => {
-    console.log('Database connected!');
-  })
-  .catch((err) => {
-    console.log('Failed to sync database', err);
-  });
+// db.sync()
+//   .then(() => {
+//     console.log('Database connected!');
+//   })
+//   .catch((err) => {
+//     console.log('Failed to sync database', err);
+//   });
 
-// Routes
 app.use('/api/teams', teamsRouter);
 app.use('/auth', userRouter);
 app.use(express.static('public/photo'));

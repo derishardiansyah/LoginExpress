@@ -76,7 +76,6 @@ const userController = {
           status: 'success',
           statusCode: 200,
           message: 'Success delete user',
-          data: deletedUser,
         });
       }
     } catch (err) {
@@ -113,7 +112,7 @@ const userController = {
                   },
                   'secret',
                   {
-                    expiresIn: '1h',
+                    expiresIn: '10d',
                   }
                 );
               res.status(200).json({

@@ -1,11 +1,11 @@
 import express from 'express';
+import verifyToken from '../controllers/verifyTokenController.js';
 import teamsController from '../controllers/teamsController.js';
-import upload from '../helper/loginHelper.js';
-import userController from '../controllers/userController.js';
+import upload from '../helper/teamsHelper.js';
 
 const teamsRouter = express.Router();
 
-teamsRouter.post('/', upload.single('photo'), teamsController.addTeam);
+teamsRouter.post('/', verifyToken, upload.single('photo'), teamsController.addTeam);
 teamsRouter.get('/', teamsController.getTeam);
 teamsRouter.get('/:id', teamsController.getTeamById);
 teamsRouter.put('/:id', upload.single('photo'), teamsController.updateTeam);

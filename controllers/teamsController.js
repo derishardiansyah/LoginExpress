@@ -8,15 +8,23 @@ const teamsController = {
         city: req.body.city,
         year: req.body.year,
         stadium: req.body.stadium,
-        photo: `http://localhost:1900/${req.file.filename}`,
+        photo: `http://localhost:3000/${req.file.filename}`,
       };
-      const newTeams = await teams.create(data);
-      if (newTeams) {
-        res.json({
-          status: 'success',
-          statusCode: 200,
-          message: 'Success add team',
-          data: newTeams,
+      if (data.name !== data.name) {
+        const newTeams = await teams.create(data);
+        if (newTeams) {
+          res.json({
+            status: 'success',
+            statusCode: 200,
+            message: 'Success add team',
+            data: newTeams,
+          });
+        }
+      } else {
+        res.status(400).json({
+          status: 'error',
+          statusCode: 400,
+          message: 'Team is available',
         });
       }
     } catch (err) {
