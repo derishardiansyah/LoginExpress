@@ -1,7 +1,7 @@
 import { DataTypes } from 'sequelize';
 
 const userModels = (sequelize) =>
-  sequelize.define('User', {
+  sequelize.define('Users', {
     username: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -9,6 +9,7 @@ const userModels = (sequelize) =>
     email: {
       type: DataTypes.STRING,
       allowNull: false,
+      unique: 'email',
     },
     password: {
       type: DataTypes.STRING,
@@ -17,6 +18,14 @@ const userModels = (sequelize) =>
     role: {
       type: DataTypes.STRING,
       allowNull: false,
+    },
+    verify: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    isAdmin: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
     },
   });
 

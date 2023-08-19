@@ -11,13 +11,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
-// db.sync()
-//   .then(() => {
-//     console.log('Database connected!');
-//   })
-//   .catch((err) => {
-//     console.log('Failed to sync database', err);
-//   });
+// kalau ubah models harus sync dinyalakan
+db.sync({ force: true })
+  .then(() => {
+    console.log('Database connected!');
+  })
+  .catch((err) => {
+    console.log('Failed to sync database', err);
+  });
 
 app.use('/api/teams', teamsRouter);
 app.use('/auth', userRouter);
