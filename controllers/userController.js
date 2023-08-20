@@ -90,7 +90,11 @@ const userController = {
       console.log(decode);
 
       if (!decode.isAdmin) {
-        throw 'Unauthorized';
+        return res.status(401).json({
+          status: 'error',
+          statusCode: 401,
+          message: 'User is not admin.',
+        });
       }
       const users = await user.findAll();
       if (!users) {
@@ -113,7 +117,11 @@ const userController = {
       const token = req.headers.authorization.split(' ')[1];
       const decode = jwt.verify(token, process.env.secretLogin);
       if (!decode.isAdmin) {
-        throw new Error('Unauthorized');
+        return res.status(401).json({
+          status: 'error',
+          statusCode: 401,
+          message: 'User is not admin.',
+        });
       }
       const users = await user.findOne({
         where: {
@@ -151,13 +159,13 @@ const userController = {
         });
       }
 
-      const user = await User.findOne({
+      const users = await user.findOne({
         where: {
           username: username,
         },
       });
 
-      if (!user) {
+      if (!users) {
         return res.status(401).json({
           status: 'error',
           statusCode: 401,
@@ -165,7 +173,7 @@ const userController = {
         });
       }
 
-      const passwordIsValid = await bcrypt.compare(password, user.password);
+      const passwordIsValid = await bcrypt.compare(password, users.password);
 
       if (!passwordIsValid) {
         return res.status(401).json({
@@ -175,7 +183,7 @@ const userController = {
         });
       }
 
-      if (!user.isVerify) {
+      if (!users.isVerify) {
         return res.status(401).json({
           status: 'error',
           statusCode: 401,
@@ -186,7 +194,7 @@ const userController = {
       const token = jwt.sign(
         {
           username: username,
-          isAdmin: user.isAdmin,
+          isAdmin: users.isAdmin,
         },
         process.env.secretLogin,
         {
@@ -200,7 +208,7 @@ const userController = {
         message: 'Login successful.',
         data: {
           username: username,
-          role: user.role,
+          role: users.role,
           token: token,
         },
       });
@@ -210,6 +218,63 @@ const userController = {
         status: 'error',
         statusCode: 500,
         message: 'Internal server error.',
+      });
+    }
+  },
+  changePassword: async (req, res) => {
+    try {
+      const { username, oldPassword, newPassword } = req.body;
+
+      const existingUser = await user.findOne({ username: username });
+
+      if (!existingUser) {
+        return res.status(401).json({
+          status: 'error',
+          statusCode: 401,
+          message: 'User not found.',
+        });
+      }
+
+      if (!existingUser.isVerify) {
+        return res.status(401).json({
+          status: 'error',
+          statusCode: 401,
+          message: 'User is not verified.',
+        });
+      }
+
+      // Define the password comparison method directly on the model
+      // Compare the provided plain text password with the stored hashed password
+      // using the bcrypt.compare function. It returns a promise that resolves to true if
+      // the passwords match, and false otherwise.
+      existingUser.comparePassword = async function (providedPassword) {
+        return bcrypt.compare(providedPassword, this.password);
+      };
+
+      const isMatch = await existingUser.comparePassword(oldPassword);
+      if (!isMatch) {
+        return res.status(401).json({
+          status: 'error',
+          statusCode: 401,
+          message: 'Invalid old password.',
+        });
+      }
+
+      // Update password
+      const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+      existingUser.password = hashedNewPassword; // Update the user's password field
+      await existingUser.save();
+
+      return res.status(200).json({
+        status: 'success',
+        statusCode: 200,
+        message: 'Password updated successfully.',
+      });
+    } catch (err) {
+      return res.status(500).json({
+        status: 'error',
+        statusCode: 500,
+        message: err.message,
       });
     }
   },

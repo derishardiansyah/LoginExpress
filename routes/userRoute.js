@@ -8,5 +8,5 @@ userRouter.get('/register', userController.getUser);
 userRouter.delete('/register/:id', userController.deleteUser);
 userRouter.post('/login', userController.loginUser);
 userRouter.get('/verify/:token', userController.verify);
-
+userRouter.put('/changepassword/:name', userController.changePassword);
 export default userRouter;
