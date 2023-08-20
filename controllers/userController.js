@@ -2,10 +2,8 @@ import { user } from '../database/db.js';
 import bcrypt from 'bcrypt';
 import fs from 'fs';
 import Handlebars from 'handlebars';
-import crypto, { verify } from 'crypto';
 import nodemailer from 'nodemailer';
 import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
 
 const userController = {
   addUser: async (req, res) => {
@@ -19,7 +17,7 @@ const userController = {
       const newUser = await user.create(data);
 
       const existingUser = await user.findOne({ where: { email: req.body.email } });
-      const token = jwt.sign({ email: req.body.email }, 'verify', { expiresIn: '1h' });
+      const token = jwt.sign({ email: req.body.email }, process.env.secretVerify, { expiresIn: '1h' });
       const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
@@ -34,7 +32,7 @@ const userController = {
         link: `http://localhost:3000/auth/verify/${token}`,
       });
       const mailOptions = {
-        from: 'derishardiansyahh@gmail.com',
+        from: 'derishardiansyah27@gmail.com',
         to: existingUser.email,
         subject: 'Verify Account',
         html: tempResult,
@@ -47,7 +45,6 @@ const userController = {
         data: {
           data: newUser,
           message: 'Verify account email sent',
-          token: token,
         },
       });
     } catch (err) {
@@ -69,10 +66,11 @@ const userController = {
   verify: async (req, res) => {
     try {
       const { token } = req.params;
-      const verifyToken = jwt.verify(token, 'verify');
+      const verifyToken = jwt.verify(token, process.env.secretVerify);
       await user.update(
         {
-          verify: true,
+          // nama table di database
+          isVerify: true,
         },
         { where: { email: verifyToken.email } }
       );
@@ -88,7 +86,7 @@ const userController = {
   getUser: async (req, res) => {
     try {
       let token = req.headers.authorization.split(' ')[1];
-      let decode = jwt.verify(token, 'secret');
+      let decode = jwt.verify(token, process.env.secretLogin);
       console.log(decode);
 
       if (!decode.isAdmin) {
@@ -113,7 +111,7 @@ const userController = {
   deleteUser: async (req, res) => {
     try {
       const token = req.headers.authorization.split(' ')[1];
-      const decode = jwt.verify(token, 'secret');
+      const decode = jwt.verify(token, process.env.secretLogin);
       if (!decode.isAdmin) {
         throw new Error('Unauthorized');
       }
@@ -143,71 +141,75 @@ const userController = {
   },
   loginUser: async (req, res) => {
     try {
-      if (req.body.username && req.body.password) {
-        const users = await user.findOne({
-          where: {
-            username: req.body.username,
-          },
-        });
+      const { username, password } = req.body;
 
-        if (users) {
-          const passwordIsValid = await bcrypt.compare(req.body.password, users.password);
-          if (passwordIsValid) {
-            if (!users.verify) {
-              throw new Error('Not verify');
-            }
-            const tampilData = {
-              username: req.body.username,
-              role: users.role,
-            };
-
-            const token = jwt.sign(
-              {
-                username: req.body.username,
-                isAdmin: users.isAdmin,
-              },
-              'secret',
-              {
-                expiresIn: '10d',
-              }
-            );
-            res.status(200).json({
-              status: 'success',
-              statusCode: 200,
-              message: 'Success login',
-              data: {
-                username: req.body.username,
-                role: users.role,
-                token: token,
-                profile: tampilData,
-              },
-            });
-          } else {
-            res.status(401).json({
-              status: 'error',
-              statusCode: 401,
-              message: 'Wrong username and password',
-            });
-          }
-        } else {
-          res.status(401).json({
-            status: 'error',
-            statusCode: 401,
-            message: 'User not found',
-          });
-        }
-      } else {
-        res.status(400).json({
+      if (!username || !password) {
+        return res.status(400).json({
           status: 'error',
           statusCode: 400,
-          message: 'Required username and password',
+          message: 'Username and password are required.',
         });
       }
-    } catch (err) {
+
+      const user = await User.findOne({
+        where: {
+          username: username,
+        },
+      });
+
+      if (!user) {
+        return res.status(401).json({
+          status: 'error',
+          statusCode: 401,
+          message: 'User not found.',
+        });
+      }
+
+      const passwordIsValid = await bcrypt.compare(password, user.password);
+
+      if (!passwordIsValid) {
+        return res.status(401).json({
+          status: 'error',
+          statusCode: 401,
+          message: 'Wrong username or password.',
+        });
+      }
+
+      if (!user.isVerify) {
+        return res.status(401).json({
+          status: 'error',
+          statusCode: 401,
+          message: 'User is not verified.',
+        });
+      }
+
+      const token = jwt.sign(
+        {
+          username: username,
+          isAdmin: user.isAdmin,
+        },
+        process.env.secretLogin,
+        {
+          expiresIn: '10d',
+        }
+      );
+
+      return res.status(200).json({
+        status: 'success',
+        statusCode: 200,
+        message: 'Login successful.',
+        data: {
+          username: username,
+          role: user.role,
+          token: token,
+        },
+      });
+    } catch (error) {
+      console.error('Error:', error);
       res.status(500).json({
         status: 'error',
         statusCode: 500,
-        message: err,
+        message: 'Internal server error.',
       });
     }
   },

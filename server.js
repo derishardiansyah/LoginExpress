@@ -12,7 +12,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
 // kalau ubah models harus sync dinyalakan
-db.sync({ force: true })
+db.sync()
   .then(() => {
     console.log('Database connected!');
   })

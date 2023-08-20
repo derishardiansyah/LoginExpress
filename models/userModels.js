@@ -19,7 +19,7 @@ const userModels = (sequelize) =>
       type: DataTypes.STRING,
       allowNull: false,
     },
-    verify: {
+    isVerify: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
