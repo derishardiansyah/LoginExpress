@@ -4,6 +4,7 @@ import fs from 'fs';
 import Handlebars from 'handlebars';
 import nodemailer from 'nodemailer';
 import jwt from 'jsonwebtoken';
+import responseHelper from '../helper/responseHelper.js';
 
 const userController = {
   addUser: async (req, res) => {
@@ -17,7 +18,7 @@ const userController = {
       const newUser = await user.create(data);
 
       const existingUser = await user.findOne({ where: { email: req.body.email } });
-      const token = jwt.sign({ email: req.body.email }, process.env.secretVerify, { expiresIn: '1h' });
+      const token = jwt.sign({ where: { email: req.body.email } }, process.env.secretVerify, { expiresIn: '1h' });
       const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
@@ -38,33 +39,27 @@ const userController = {
         html: tempResult,
       };
       await transporter.sendMail(mailOptions);
-      res.json({
-        status: 'success',
-        statusCode: 200,
-        message: 'Success add user',
-        data: {
+      responseHelper(
+        res,
+        200,
+        {
           data: newUser,
           message: 'Verify account email sent',
         },
-      });
+        'User has been created',
+        'success'
+      );
     } catch (err) {
       const typeError = err?.errors?.[0]?.type;
       if (typeError === 'unique violation') {
-        return res.status(400).json({
-          status: 'error',
-          statusCode: 400,
-          message: 'User with this email already exists',
-        });
+        responseHelper(res, 400, '', 'User with this email already exists');
       }
-      res.status(500).json({
-        status: 'error',
-        statusCode: 500,
-        message: err,
-      });
+      responseHelper(res, 500, '', err, 'error');
     }
   },
   verify: async (req, res) => {
     try {
+      // didapat dari token addUser
       const { token } = req.params;
       const verifyToken = jwt.verify(token, process.env.secretVerify);
       await user.update(
@@ -74,42 +69,26 @@ const userController = {
         },
         { where: { email: verifyToken.email } }
       );
-      res.json({ message: 'Verify success' });
+      responseHelper(res, 200, '', 'Verify success', 'success');
     } catch {
-      res.status(400).json({
-        status: 'error',
-        statusCode: 400,
-        message: 'Invalid token',
-      });
+      responseHelper(res, 400, '', 'Verify failed', 'error');
     }
   },
   getUser: async (req, res) => {
     try {
       let token = req.headers.authorization.split(' ')[1];
       let decode = jwt.verify(token, process.env.secretLogin);
-      console.log(decode);
 
       if (!decode.isAdmin) {
-        return res.status(401).json({
-          status: 'error',
-          statusCode: 401,
-          message: 'User is not admin.',
-        });
+        responseHelper(res, 401, '', 'Unauthorized', 'error');
       }
       const users = await user.findAll();
       if (!users) {
-        res.status(400).json({
-          message: 'No user found',
-          status: 'error',
-        });
+        responseHelper(res, 401, '', 'User not found', 'error');
       }
-      return res.status(200).send(users);
+      responseHelper(res, 200, users, 'success', 'data');
     } catch (err) {
-      res.status(500).json({
-        status: 'error',
-        statusCode: 500,
-        message: err,
-      });
+      responseHelper(res, 500, '', err, 'error');
     }
   },
   deleteUser: async (req, res) => {
@@ -117,11 +96,7 @@ const userController = {
       const token = req.headers.authorization.split(' ')[1];
       const decode = jwt.verify(token, process.env.secretLogin);
       if (!decode.isAdmin) {
-        return res.status(401).json({
-          status: 'error',
-          statusCode: 401,
-          message: 'User is not admin.',
-        });
+        responseHelper(res, 401, '', 'User is not admin', 'error');
       }
       const users = await user.findOne({
         where: {
@@ -129,22 +104,14 @@ const userController = {
         },
       });
       if (!users) {
-        throw new Error('User not found');
+        responseHelper(res, 401, '', 'User not found', 'error');
       }
       const deletedUser = await users.destroy();
       if (deletedUser) {
-        res.json({
-          status: 'success',
-          statusCode: 200,
-          message: 'Success delete user',
-        });
+        responseHelper(res, 200, '', 'User deleted successfully', 'success');
       }
     } catch (err) {
-      res.status(500).json({
-        status: 'error',
-        statusCode: 500,
-        message: err,
-      });
+      responseHelper(res, 500, '', err, 'error');
     }
   },
   loginUser: async (req, res) => {
@@ -152,11 +119,7 @@ const userController = {
       const { username, password } = req.body;
 
       if (!username || !password) {
-        return res.status(400).json({
-          status: 'error',
-          statusCode: 400,
-          message: 'Username and password are required.',
-        });
+        responseHelper(res, 400, '', 'Username or Password is empty', 'error');
       }
 
       const users = await user.findOne({
@@ -166,66 +129,42 @@ const userController = {
       });
 
       if (!users) {
-        return res.status(401).json({
-          status: 'error',
-          statusCode: 401,
-          message: 'User not found.',
-        });
+        responseHelper(res, 401, '', 'Invalid Username', 'error');
       }
 
       const passwordIsValid = await bcrypt.compare(password, users.password);
-
       if (!passwordIsValid) {
-        return res.status(401).json({
-          status: 'error',
-          statusCode: 401,
-          message: 'Wrong username or password.',
-        });
+        responseHelper(res, 401, '', 'Invalid Password', 'error');
       }
 
       if (!users.isVerify) {
-        return res.status(401).json({
-          status: 'error',
-          statusCode: 401,
-          message: 'User is not verified.',
-        });
+        responseHelper(res, 401, '', 'Your account is not verified yet', 'error');
       }
 
       // supaya token hanya bisa digunakan by User
-      const payload = {
-        username: users.username,
-        isVerify: users.isVerify,
-      };
-
       const token = jwt.sign(
         {
           username: username,
           isAdmin: users.isAdmin,
           isVerify: users.isVerify,
         },
-        (payload, process.env.secretLogin),
+        process.env.secretLogin,
         {
           expiresIn: '1h',
         }
       );
-
-      return res.status(200).json({
-        status: 'success',
-        statusCode: 200,
-        message: 'Login successful.',
-        data: {
+      responseHelper(
+        res,
+        200,
+        {
           username: username,
           role: users.role,
           token: token,
         },
-      });
+        'Login successful'
+      );
     } catch (error) {
-      console.error('Error:', error);
-      res.status(500).json({
-        status: 'error',
-        statusCode: 500,
-        message: 'Internal server error.',
-      });
+      responseHelper(res, 500, '', error.message);
     }
   },
   changePassword: async (req, res) => {
@@ -235,54 +174,29 @@ const userController = {
       const existingUser = await user.findOne({ where: { username: username } });
 
       if (!existingUser) {
-        return res.status(401).json({
-          status: 'error',
-          statusCode: 401,
-          message: 'User not found.',
-        });
+        responseHelper(res, 404, '', 'User not found');
       }
 
       if (!existingUser.isVerify) {
-        return res.status(401).json({
-          status: 'error',
-          statusCode: 401,
-          message: 'User is not verified.',
-        });
+        responseHelper(res, 401, '', 'Your account is not verified. Please verify your email to login');
       }
 
-      // Define the password comparison method directly on the model
-      // Compare the provided plain text password with the stored hashed password
-      // using the bcrypt.compare function. It returns a promise that resolves to true if
-      // the passwords match, and false otherwise.
       existingUser.comparePassword = async function (providedPassword) {
         return bcrypt.compare(providedPassword, this.password);
       };
 
       const isMatch = await existingUser.comparePassword(oldPassword);
       if (!isMatch) {
-        return res.status(401).json({
-          status: 'error',
-          statusCode: 401,
-          message: 'Invalid old password.',
-        });
+        responseHelper(res, 401, '', 'Old password is incorrect');
       }
 
-      // Update password
       const hashedNewPassword = await bcrypt.hash(newPassword, 10);
-      existingUser.password = hashedNewPassword; // Update the user's password field
+      existingUser.password = hashedNewPassword;
       await existingUser.save();
 
-      return res.status(200).json({
-        status: 'success',
-        statusCode: 200,
-        message: 'Password updated successfully.',
-      });
+      responseHelper(res, 200, '', 'Password changed successfully');
     } catch (err) {
-      return res.status(500).json({
-        status: 'error',
-        statusCode: 500,
-        message: err.message,
-      });
+      responseHelper(err, 500, '', err.message);
     }
   },
   getProfile: async (req, res) => {
@@ -292,28 +206,16 @@ const userController = {
 
       const requestedUsername = req.params.username;
       if (decode.username !== requestedUsername) {
-        return res.status(401).json({
-          status: 'error',
-          statusCode: 401,
-          message: 'Unauthorized access to this profile.',
-        });
+        responseHelper(res, 401, '', 'Unauthorized access to this profile');
       }
       const users = await user.findOne({
         where: {
           username: req.params.username,
         },
       });
-      return res.status(200).json({
-        status: 'success',
-        statusCode: 200,
-        data: users,
-      });
+      responseHelper(res, 200, users, 'Success');
     } catch (err) {
-      return res.status(500).json({
-        status: 'error',
-        statusCode: 500,
-        message: err.message,
-      });
+      responseHelper(res, 500, '', err.message);
     }
   },
 };
