@@ -18,7 +18,7 @@ const userController = {
       const newUser = await user.create(data);
 
       const existingUser = await user.findOne({ where: { email: req.body.email } });
-      const token = jwt.sign({ where: { email: req.body.email } }, process.env.secretVerify, { expiresIn: '1h' });
+      const token = jwt.sign({ email: req.body.email }, process.env.secretVerify, { expiresIn: '1h' });
       const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
@@ -39,7 +39,7 @@ const userController = {
         html: tempResult,
       };
       await transporter.sendMail(mailOptions);
-      responseHelper(
+      return responseHelper(
         res,
         200,
         {
@@ -52,7 +52,7 @@ const userController = {
     } catch (err) {
       const typeError = err?.errors?.[0]?.type;
       if (typeError === 'unique violation') {
-        responseHelper(res, 400, '', 'User with this email already exists');
+        return responseHelper(res, 400, '', 'User with this email already exists');
       }
       responseHelper(res, 500, '', err, 'error');
     }
@@ -62,6 +62,8 @@ const userController = {
       // didapat dari token addUser
       const { token } = req.params;
       const verifyToken = jwt.verify(token, process.env.secretVerify);
+
+      console.log(verifyToken);
       await user.update(
         {
           // nama table di database
@@ -69,8 +71,9 @@ const userController = {
         },
         { where: { email: verifyToken.email } }
       );
-      responseHelper(res, 200, '', 'Verify success', 'success');
-    } catch {
+      return responseHelper(res, 200, '', 'Verify success', 'success');
+    } catch (err) {
+      console.log(err);
       responseHelper(res, 400, '', 'Verify failed', 'error');
     }
   },
@@ -80,13 +83,13 @@ const userController = {
       let decode = jwt.verify(token, process.env.secretLogin);
 
       if (!decode.isAdmin) {
-        responseHelper(res, 401, '', 'Unauthorized', 'error');
+        return responseHelper(res, 401, '', 'Unauthorized', 'error');
       }
       const users = await user.findAll();
       if (!users) {
-        responseHelper(res, 401, '', 'User not found', 'error');
+        return responseHelper(res, 401, '', 'User not found', 'error');
       }
-      responseHelper(res, 200, users, 'success', 'data');
+      return responseHelper(res, 200, users, 'success', 'data');
     } catch (err) {
       responseHelper(res, 500, '', err, 'error');
     }
@@ -96,7 +99,7 @@ const userController = {
       const token = req.headers.authorization.split(' ')[1];
       const decode = jwt.verify(token, process.env.secretLogin);
       if (!decode.isAdmin) {
-        responseHelper(res, 401, '', 'User is not admin', 'error');
+        return responseHelper(res, 401, '', 'User is not admin', 'error');
       }
       const users = await user.findOne({
         where: {
@@ -104,11 +107,11 @@ const userController = {
         },
       });
       if (!users) {
-        responseHelper(res, 401, '', 'User not found', 'error');
+        return responseHelper(res, 401, '', 'User not found', 'error');
       }
       const deletedUser = await users.destroy();
       if (deletedUser) {
-        responseHelper(res, 200, '', 'User deleted successfully', 'success');
+        return responseHelper(res, 200, '', 'User deleted successfully', 'success');
       }
     } catch (err) {
       responseHelper(res, 500, '', err, 'error');
@@ -119,7 +122,7 @@ const userController = {
       const { username, password } = req.body;
 
       if (!username || !password) {
-        responseHelper(res, 400, '', 'Username or Password is empty', 'error');
+        return responseHelper(res, 400, '', 'Username or Password is empty', 'error');
       }
 
       const users = await user.findOne({
@@ -129,16 +132,16 @@ const userController = {
       });
 
       if (!users) {
-        responseHelper(res, 401, '', 'Invalid Username', 'error');
+        return responseHelper(res, 401, '', 'Invalid Username', 'error');
       }
 
       const passwordIsValid = await bcrypt.compare(password, users.password);
       if (!passwordIsValid) {
-        responseHelper(res, 401, '', 'Invalid Password', 'error');
+        return responseHelper(res, 401, '', 'Invalid Password', 'error');
       }
 
       if (!users.isVerify) {
-        responseHelper(res, 401, '', 'Your account is not verified yet', 'error');
+        return responseHelper(res, 401, '', 'Your account is not verified yet', 'error');
       }
 
       // supaya token hanya bisa digunakan by User
@@ -153,7 +156,7 @@ const userController = {
           expiresIn: '1h',
         }
       );
-      responseHelper(
+      return responseHelper(
         res,
         200,
         {
@@ -164,7 +167,7 @@ const userController = {
         'Login successful'
       );
     } catch (error) {
-      responseHelper(res, 500, '', error.message);
+      responseHelper(res, 500, '', error, 'error');
     }
   },
   changePassword: async (req, res) => {
@@ -174,11 +177,11 @@ const userController = {
       const existingUser = await user.findOne({ where: { username: username } });
 
       if (!existingUser) {
-        responseHelper(res, 404, '', 'User not found');
+        return responseHelper(res, 404, '', 'User not found');
       }
 
       if (!existingUser.isVerify) {
-        responseHelper(res, 401, '', 'Your account is not verified. Please verify your email to login');
+        return responseHelper(res, 401, '', 'Your account is not verified. Please verify your email to login');
       }
 
       existingUser.comparePassword = async function (providedPassword) {
@@ -187,14 +190,14 @@ const userController = {
 
       const isMatch = await existingUser.comparePassword(oldPassword);
       if (!isMatch) {
-        responseHelper(res, 401, '', 'Old password is incorrect');
+        return responseHelper(res, 401, '', 'Old password is incorrect');
       }
 
       const hashedNewPassword = await bcrypt.hash(newPassword, 10);
       existingUser.password = hashedNewPassword;
       await existingUser.save();
 
-      responseHelper(res, 200, '', 'Password changed successfully');
+      return responseHelper(res, 200, '', 'Password changed successfully');
     } catch (err) {
       responseHelper(err, 500, '', err.message);
     }
@@ -206,14 +209,14 @@ const userController = {
 
       const requestedUsername = req.params.username;
       if (decode.username !== requestedUsername) {
-        responseHelper(res, 401, '', 'Unauthorized access to this profile');
+        return responseHelper(res, 401, '', 'Unauthorized access to this profile');
       }
       const users = await user.findOne({
         where: {
           username: req.params.username,
         },
       });
-      responseHelper(res, 200, users, 'Success');
+      return responseHelper(res, 200, users, 'Success');
     } catch (err) {
       responseHelper(res, 500, '', err.message);
     }

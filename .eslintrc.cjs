@@ -1,10 +1,12 @@
-module.exports = {
+export default {
   env: {
+    browser: true,
     es2021: true,
     node: true,
+    jest: true,
   },
   plugins: ['prettier'],
-  extends: ['eslint:recommended', 'prettier'],
+  extends: ['airbnb-base', 'prettier'],
   overrides: [
     {
       env: {
@@ -23,5 +25,7 @@ module.exports = {
   rules: {
     'prettier/prettier': 'error',
     'no-param-reassign': 'off',
+    'import/extensions': 0,
+    'no-plusplus': 0,
   },
 };

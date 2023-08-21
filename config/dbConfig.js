@@ -11,6 +11,9 @@ const dbConfig = {
   options: {
     host: process.env.DB_HOST,
     dialect: 'mysql',
+    dialectOptions: {
+      socketPath: '/Applications/MAMP/tmp/mysql/mysql.sock',
+    },
     pool: {
       max: 5,
       min: 0,

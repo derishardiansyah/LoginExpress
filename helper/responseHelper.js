@@ -11,7 +11,7 @@ const responseHelper = (res, status, data, message) => {
 
   if (status === 500 || status === 404 || status === 401 || status === 400) {
     const errorMessage = status === 404 ? 'Api Not Found' : response.message;
-    return res.status(status).json({
+    return res.status(status).send({
       status: 'Error',
       statusCode: status,
       message: errorMessage,

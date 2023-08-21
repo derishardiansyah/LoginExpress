@@ -7,7 +7,9 @@ import userRouter from './routes/userRoute.js';
 const port = process.env.PORT || 3000;
 const app = express();
 
+// untuk menangkap json
 app.use(express.json());
+// untuk menangkap request body
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
@@ -27,3 +29,5 @@ app.use(express.static('public/photo'));
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
+
+export default app;
