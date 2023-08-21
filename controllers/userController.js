@@ -32,7 +32,7 @@ const userController = {
         link: `http://localhost:3000/auth/verify/${token}`,
       });
       const mailOptions = {
-        from: 'derishardiansyah27@gmail.com',
+        from: 'derishardiansyahh@gmail.com',
         to: existingUser.email,
         subject: 'Verify Account',
         html: tempResult,
@@ -191,14 +191,21 @@ const userController = {
         });
       }
 
+      // supaya token hanya bisa digunakan by User
+      const payload = {
+        username: users.username,
+        isVerify: users.isVerify,
+      };
+
       const token = jwt.sign(
         {
           username: username,
           isAdmin: users.isAdmin,
+          isVerify: users.isVerify,
         },
-        process.env.secretLogin,
+        (payload, process.env.secretLogin),
         {
-          expiresIn: '10d',
+          expiresIn: '1h',
         }
       );
 
@@ -225,7 +232,7 @@ const userController = {
     try {
       const { username, oldPassword, newPassword } = req.body;
 
-      const existingUser = await user.findOne({ username: username });
+      const existingUser = await user.findOne({ where: { username: username } });
 
       if (!existingUser) {
         return res.status(401).json({
@@ -269,6 +276,37 @@ const userController = {
         status: 'success',
         statusCode: 200,
         message: 'Password updated successfully.',
+      });
+    } catch (err) {
+      return res.status(500).json({
+        status: 'error',
+        statusCode: 500,
+        message: err.message,
+      });
+    }
+  },
+  getProfile: async (req, res) => {
+    try {
+      const token = req.headers.authorization.split(' ')[1];
+      const decode = jwt.verify(token, process.env.secretLogin);
+
+      const requestedUsername = req.params.username;
+      if (decode.username !== requestedUsername) {
+        return res.status(401).json({
+          status: 'error',
+          statusCode: 401,
+          message: 'Unauthorized access to this profile.',
+        });
+      }
+      const users = await user.findOne({
+        where: {
+          username: req.params.username,
+        },
+      });
+      return res.status(200).json({
+        status: 'success',
+        statusCode: 200,
+        data: users,
       });
     } catch (err) {
       return res.status(500).json({
