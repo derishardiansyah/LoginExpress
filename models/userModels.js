@@ -15,10 +15,6 @@ const userModels = (sequelize) =>
       type: DataTypes.STRING,
       allowNull: false,
     },
-    role: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
     isVerify: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,

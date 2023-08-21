@@ -10,7 +10,8 @@ const teamsController = {
         stadium: req.body.stadium,
         photo: `http://localhost:3000/${req.file.filename}`,
       };
-      if (data.name !== data.name) {
+      const existingTeam = await teams.findOne({ where: { name: data.name } });
+      if (!existingTeam) {
         const newTeams = await teams.create(data);
         if (newTeams) {
           res.json({
@@ -28,6 +29,7 @@ const teamsController = {
         });
       }
     } catch (err) {
+      console.log(err);
       res.status(500).json({
         status: 'error',
         statusCode: 500,

@@ -13,7 +13,6 @@ const userController = {
         username: req.body.username,
         email: req.body.email,
         password: bcrypt.hashSync(req.body.password, 8),
-        role: req.body.role,
       };
       const newUser = await user.create(data);
 
@@ -62,8 +61,6 @@ const userController = {
       // didapat dari token addUser
       const { token } = req.params;
       const verifyToken = jwt.verify(token, process.env.secretVerify);
-
-      console.log(verifyToken);
       await user.update(
         {
           // nama table di database
@@ -73,7 +70,6 @@ const userController = {
       );
       return responseHelper(res, 200, '', 'Verify success', 'success');
     } catch (err) {
-      console.log(err);
       responseHelper(res, 400, '', 'Verify failed', 'error');
     }
   },
@@ -140,7 +136,7 @@ const userController = {
         return responseHelper(res, 401, '', 'Invalid Password', 'error');
       }
 
-      if (!users.isVerify) {
+      if (!users.isVerify && !users.isAdmin) {
         return responseHelper(res, 401, '', 'Your account is not verified yet', 'error');
       }
 
@@ -161,7 +157,6 @@ const userController = {
         200,
         {
           username: username,
-          role: users.role,
           token: token,
         },
         'Login successful'

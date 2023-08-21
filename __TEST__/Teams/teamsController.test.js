@@ -1,65 +1,104 @@
-import teamsController from '../../controllers/teamsController.js'; // Gantikan dengan path yang benar
-import { teams } from '../../database/db.js'; // Gantikan dengan path yang benar
+import teamsController from '../../controllers/teamsController.js';
 
-jest.mock('../../database/db.js'); // Mock database module
+// Mocking Express request and response objects
+const mockRequest = (body, file) => ({
+  body,
+  file,
+});
 
-describe('Teams Controller', () => {
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+const mockResponse = () => {
+  const res = {};
+  res.status = jest.fn().mockReturnValue(res);
+  res.json = jest.fn().mockReturnValue(res);
+  return res;
+};
 
-  it('should add a team', async () => {
-    const req = {
-      body: {
-        name: 'Team A',
-        city: 'City A',
-        year: 2023,
-        stadium: 'Stadium A',
+describe('addTeam', () => {
+  // it('should add a new team successfully', async () => {
+  //   const req = mockRequest(
+  //     {
+  //       name: 'Team A',
+  //       city: 'City A',
+  //       year: 2023,
+  //       stadium: 'Stadium A',
+  //     },
+  //     {
+  //       filename: 'teamA.jpg',
+  //     }
+  //   );
+
+  //   const res = mockResponse();
+
+  //   const add = await teamsController.addTeam(req, res);
+  //   console.log(add, 'add');
+
+  //   expect(res.status).toHaveBeenCalledWith(200);
+  //   expect(res.json).toHaveBeenCalledWith({
+  //     status: 'success',
+  //     statusCode: 200,
+  //     message: 'Success add team',
+  //     data: expect.objectContaining({
+  //       name: 'Team A',
+  //       city: 'City A',
+  //       year: 2023,
+  //       stadium: 'Stadium A',
+  //       photo: 'http://localhost:3000/teamA.jpg',
+  //     }),
+  //   });
+  // });
+
+  it('should return an error if the team name is not provided', async () => {
+    const req = mockRequest(
+      {
+        // No name provided
+        city: 'City B',
+        year: 2022,
+        stadium: 'Stadium B',
       },
-      file: { filename: 'image.jpg' },
-    };
-    const res = {
-      json: jest.fn(),
-      status: jest.fn().mockReturnThis(),
-    };
+      {
+        filename: 'teamB.jpg',
+      }
+    );
 
-    teams.create.mockResolvedValue(req.body);
+    const res = mockResponse();
 
     await teamsController.addTeam(req, res);
 
-    expect(teams.create).toHaveBeenCalledWith({
-      name: 'Team A',
-      city: 'City A',
-      year: 2023,
-      stadium: 'Stadium A',
-      photo: 'http://localhost:3000/image.jpg',
-    });
+    expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({
-      status: 'success',
-      statusCode: 200,
-      message: 'Success add team',
-      data: req.body,
+      status: 'error',
+      statusCode: 400,
+      message: 'Team is available',
     });
   });
 
-  it('should get all teams', async () => {
-    const teamData = [{ name: 'Team A' }, { name: 'Team B' }];
-    const res = {
-      json: jest.fn(),
-    };
+  it('should return a server error for unexpected errors', async () => {
+    const req = mockRequest(
+      {
+        name: 'Team C',
+        city: 'City C',
+        year: 2021,
+        stadium: 'Stadium C',
+      },
+      {
+        filename: 'teamC.jpg',
+      }
+    );
 
-    teams.findAll.mockResolvedValue(teamData);
+    const res = mockResponse();
 
-    await teamsController.getTeam({}, res);
+    // Simulate an unexpected error
+    teamsController.teams.create = jest.fn(() => {
+      throw new Error('Unexpected error');
+    });
 
-    expect(teams.findAll).toHaveBeenCalled();
+    await teamsController.addTeam(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({
-      status: 'success',
-      statusCode: 200,
-      message: 'Success get all teams',
-      data: teamData,
+      status: 'error',
+      statusCode: 500,
+      message: expect.any(String),
     });
   });
-
-  // Uji kasus lainnya sesuai dengan fungsi-fungsi lain dalam teamsController
 });

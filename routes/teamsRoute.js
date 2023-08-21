@@ -8,7 +8,7 @@ const teamsRouter = express.Router();
 teamsRouter.post('/', verifyToken, upload.single('photo'), teamsController.addTeam);
 teamsRouter.get('/', teamsController.getTeam);
 teamsRouter.get('/:id', teamsController.getTeamById);
-teamsRouter.put('/:id', upload.single('photo'), teamsController.updateTeam);
-teamsRouter.delete('/:id', teamsController.deleteTeam);
+teamsRouter.put('/:id', verifyToken, upload.single('photo'), teamsController.updateTeam);
+teamsRouter.delete('/:id', verifyToken, teamsController.deleteTeam);
 
 export default teamsRouter;

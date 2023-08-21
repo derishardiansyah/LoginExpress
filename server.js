@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import db from './database/db.js';
+import homeRouter from './routes/homeRoute.js';
 import teamsRouter from './routes/teamsRoute.js';
 import userRouter from './routes/userRoute.js';
 
@@ -22,7 +23,8 @@ db.sync()
     console.log('Failed to sync database', err);
   });
 
-app.use('/api/teams', teamsRouter);
+app.use('/', homeRouter);
+app.use('/teams', teamsRouter);
 app.use('/auth', userRouter);
 app.use(express.static('public/photo'));
 
