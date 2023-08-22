@@ -12,7 +12,6 @@ const verifyToken = (req, res, next) => {
 
   jwt.verify(token, process.env.secretLogin, (err, decoded) => {
     if (err) {
-      console.log(err);
       return res.status(401).json({
         status: 'error',
         statusCode: 401,

@@ -1,6 +1,8 @@
 import { teams } from '../database/db.js';
-import responHelper from '../helpers/responseHelper.js';
+import responHelper from '../helper/responseHelper.js';
+import { Redis } from 'ioredis';
 
+const redis = new Redis();
 const teamsController = {
   addTeam: async (req, res) => {
     try {
@@ -25,15 +27,28 @@ const teamsController = {
   },
   getTeam: async (req, res) => {
     try {
+      const cacheData = await redis.get('team');
+      if (cacheData) {
+        return responHelper(res, 200, JSON.parse(cacheData), 'Team list', 'success');
+      }
       const team = await teams.findAll();
+      await redis.set('team', JSON.stringify(team));
       return responHelper(res, 200, team, 'Team list', 'success');
     } catch (err) {
+      console.log(err);
       responHelper(res, 500, '', err.message, 'Error get team');
     }
   },
   getTeamById: async (req, res) => {
     try {
+      const cacheData = await redis.get('teambyID');
+      if (cacheData) {
+        console.log('lewat redis');
+        return responHelper(res, 200, JSON.parse(cacheData), 'Team list', 'success');
+      }
       const findTeam = await teams.findByPk(req.params.id);
+      console.log('lewatdb');
+      await redis.set('teambyID', JSON.stringify(findTeam));
       if (!findTeam) {
         return responHelper(res, 400, '', 'team not found');
       }
