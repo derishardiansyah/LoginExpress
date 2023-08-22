@@ -1,4 +1,5 @@
 import { teams } from '../database/db.js';
+import responHelper from '../helpers/responseHelper.js';
 
 const teamsController = {
   addTeam: async (req, res) => {
@@ -13,70 +14,32 @@ const teamsController = {
       const existingTeam = await teams.findOne({ where: { name: data.name } });
       if (!existingTeam) {
         const newTeams = await teams.create(data);
-        if (newTeams) {
-          res.json({
-            status: 'success',
-            statusCode: 200,
-            message: 'Success add team',
-            data: newTeams,
-          });
+        if (!newTeams) {
+          return responHelper(res, 400, '', 'Team is available');
         }
-      } else {
-        res.status(400).json({
-          status: 'error',
-          statusCode: 400,
-          message: 'Team is available',
-        });
+        return responHelper(res, 201, newTeams, 'Team added successfully');
       }
     } catch (err) {
-      console.log(err);
-      res.status(500).json({
-        status: 'error',
-        statusCode: 500,
-        message: err,
-      });
+      responHelper(res, 500, '', 'Error adding team', 'error');
     }
   },
   getTeam: async (req, res) => {
     try {
       const team = await teams.findAll();
-      res.json({
-        status: 'success',
-        statusCode: 200,
-        message: 'Success get all teams',
-        data: team,
-      });
+      return responHelper(res, 200, team, 'Team list', 'success');
     } catch (err) {
-      res.status(500).json({
-        status: 'error',
-        statusCode: 500,
-        message: err,
-      });
+      responHelper(res, 500, '', err.message, 'Error get team');
     }
   },
   getTeamById: async (req, res) => {
     try {
       const findTeam = await teams.findByPk(req.params.id);
-      if (findTeam) {
-        res.json({
-          status: 'success',
-          statusCode: 200,
-          message: 'Success get team by id',
-          data: findTeam,
-        });
-      } else {
-        res.json({
-          status: 'Error',
-          statusCode: 400,
-          message: 'team not found',
-        });
+      if (!findTeam) {
+        return responHelper(res, 400, '', 'team not found');
       }
+      return responHelper(res, 200, findTeam, 'Team list', 'success');
     } catch (err) {
-      res.status(500).json({
-        status: 'error test',
-        statusCode: 500,
-        message: err,
-      });
+      responHelper(res, 500, '', err.message, 'Error get team');
     }
   },
   updateTeam: async (req, res) => {
@@ -87,34 +50,20 @@ const teamsController = {
         },
       });
 
+      if (!updateTeam) {
+        return responHelper(res, 400, '', 'team not found');
+      }
       const newTeam = {
         name: req.body.name,
         city: req.body.city,
         year: req.body.year,
         stadium: req.body.stadium,
-        photo: `http://localhost:1900/${req.file.filename}`,
+        photo: `http://localhost:3000/${req.file.filename}`,
       };
 
-      if (updateTeam[0] === 0) {
-        res.json({
-          status: 'error',
-          statusCode: 400,
-          message: 'Team not found',
-        });
-      } else {
-        res.json({
-          status: 'success',
-          statusCode: 200,
-          message: 'Success update team',
-          data: newTeam,
-        });
-      }
+      return responHelper(res, 200, newTeam, 'Team updated', 'success');
     } catch (err) {
-      res.status(500).json({
-        status: 'error',
-        statusCode: 500,
-        message: err,
-      });
+      responHelper(res, 500, '', err.message, 'Error update team');
     }
   },
   deleteTeam: async (req, res) => {
@@ -124,25 +73,12 @@ const teamsController = {
           id: req.params.id,
         },
       });
-      if (deleteTeam === 0) {
-        res.json({
-          status: 'error',
-          statusCode: 400,
-          message: 'Team not found',
-        });
-      } else {
-        res.json({
-          status: 'success',
-          statusCode: 200,
-          message: 'Success delete team',
-        });
+      if (!deleteTeam) {
+        return responHelper(res, 400, '', 'team not found');
       }
+      return responHelper(res, 200, '', 'Team deleted', 'success');
     } catch (err) {
-      res.status(500).json({
-        status: 'error',
-        statusCode: 500,
-        message: err,
-      });
+      responHelper(res, 500, '', err.message, 'Error delete team');
     }
   },
 };
