@@ -35,7 +35,6 @@ const teamsController = {
       await redis.set('team', JSON.stringify(team));
       return responHelper(res, 200, team, 'Team list', 'success');
     } catch (err) {
-      console.log(err);
       responHelper(res, 500, '', err.message, 'Error get team');
     }
   },
@@ -43,11 +42,10 @@ const teamsController = {
     try {
       const cacheData = await redis.get('teambyID');
       if (cacheData) {
-        console.log('lewat redis');
         return responHelper(res, 200, JSON.parse(cacheData), 'Team list', 'success');
       }
       const findTeam = await teams.findByPk(req.params.id);
-      console.log('lewatdb');
+
       await redis.set('teambyID', JSON.stringify(findTeam));
       if (!findTeam) {
         return responHelper(res, 400, '', 'team not found');

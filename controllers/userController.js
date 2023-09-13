@@ -1,11 +1,13 @@
+import nodemailer from 'nodemailer';
+import { Redis } from 'ioredis';
+import jwt from 'jsonwebtoken';
+import Handlebars from 'handlebars';
+import fs from 'fs';
 import { user } from '../database/db.js';
 import bcrypt from 'bcrypt';
-import fs from 'fs';
-import Handlebars from 'handlebars';
-import nodemailer from 'nodemailer';
-import jwt from 'jsonwebtoken';
 import responseHelper from '../helper/responseHelper.js';
 
+const redis = new Redis();
 const userController = {
   addUser: async (req, res) => {
     try {
@@ -75,6 +77,10 @@ const userController = {
   },
   getUser: async (req, res) => {
     try {
+      const chachedUser = await redis.get('getUser');
+      if (chachedUser) {
+        return responseHelper(res, 200, { data: JSON.parse(chachedUser) }, 'User data', 'success');
+      }
       let token = req.headers.authorization.split(' ')[1];
       let decode = jwt.verify(token, process.env.secretLogin);
 
@@ -82,6 +88,7 @@ const userController = {
         return responseHelper(res, 401, '', 'Unauthorized', 'error');
       }
       const users = await user.findAll();
+      await redis.setex('getUser', 300, JSON.stringify(users));
       if (!users) {
         return responseHelper(res, 401, '', 'User not found', 'error');
       }
